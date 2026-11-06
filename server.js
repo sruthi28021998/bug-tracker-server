@@ -10,7 +10,7 @@ connectDB();
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL || '*' }));
 app.use(express.json());
-
+app.use('/api/auth', require('./routes/auth'));
 app.get('/', (req, res) => res.send('API running'));
 
 app.listen(process.env.PORT || 5000, () => console.log('Server running'));
