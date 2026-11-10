@@ -20,6 +20,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/projects', require('./routes/projects'));
 app.use('/api/tickets', require('./routes/tickets'));
+app.use('/api/comments', require('./routes/comments'));
 app.get('/', (req, res) => res.send('API running'));
 
 app.use((err, req, res, next) => res.status(400).json({ message: err.message }));

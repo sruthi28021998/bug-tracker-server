@@ -5,6 +5,7 @@ const { emit } = require('../socket');
 const Project = require('../models/Project');
 const User = require('../models/User');
 const Ticket = require('../models/Ticket');
+const Comment = require('../models/Comment');
 const { removeFiles } = require('../utils/files');
 
 const populate = (q) => q.populate('owner', 'name email').populate('teamMembers', 'name email');
@@ -84,6 +85,7 @@ router.delete('/:id', auth, projectGuard('project:delete'), async (req, res) => 
     const p = req.acc.project;
     const tickets = await Ticket.find({ projectId: p._id });
     tickets.forEach((t) => removeFiles(t.attachments));
+    await Comment.deleteMany({ ticketId: { $in: tickets.map((t) => t._id) } });
     await Ticket.deleteMany({ projectId: p._id });
     await p.deleteOne();
     res.json({ message: 'Deleted' });

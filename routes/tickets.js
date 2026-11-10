@@ -5,6 +5,7 @@ const { can, getAccess } = require('../middleware/access');
 const { emit } = require('../socket');
 const { removeFiles } = require('../utils/files');
 const Ticket = require('../models/Ticket');
+const Comment = require('../models/Comment');
 
 const populate = (q) => q.populate('assignee', 'name email').populate('reporter', 'name email');
 const rank = { low: 1, medium: 2, high: 3 };
@@ -83,6 +84,7 @@ router.delete('/:id', auth, loadTicket, async (req, res) => {
     const allowed = can(role, 'ticket:delete:any') || (role !== 'viewer' && t.reporter.equals(req.user.id));
     if (!allowed) return res.status(403).json({ message: 'Only reporter, manager or admin can delete' });
     removeFiles(t.attachments);
+    await Comment.deleteMany({ ticketId: t._id });
     await t.deleteOne();
     emit(t.projectId, 'ticket:changed', { ticketId: t._id });
     res.json({ message: 'Deleted' });
