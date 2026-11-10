@@ -4,6 +4,8 @@ const { projectGuard } = require('../middleware/access');
 const { emit } = require('../socket');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const Ticket = require('../models/Ticket');
+const { removeFiles } = require('../utils/files');
 
 const populate = (q) => q.populate('owner', 'name email').populate('teamMembers', 'name email');
 const ROLES = ['manager', 'developer', 'viewer'];
@@ -77,17 +79,14 @@ router.put('/:id/members/:userId', auth, projectGuard('member:manage'), async (r
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-router.delete('/:id/members/:userId', auth, projectGuard('member:manage'), async (req, res) => {
+router.delete('/:id', auth, projectGuard('project:delete'), async (req, res) => {
   try {
     const p = req.acc.project;
-    if (p.owner.equals(req.params.userId)) return res.status(400).json({ message: 'Cannot remove owner' });
-    p.teamMembers = p.teamMembers.filter((m) => !m.equals(req.params.userId));
-    const roles = { ...(p.roles || {}) };
-    delete roles[req.params.userId];
-    p.roles = roles;
-    await p.save();
-    emit(p._id, 'project:changed');
-    res.json(await populate(Project.findById(p._id)));
+    const tickets = await Ticket.find({ projectId: p._id });
+    tickets.forEach((t) => removeFiles(t.attachments));
+    await Ticket.deleteMany({ projectId: p._id });
+    await p.deleteOne();
+    res.json({ message: 'Deleted' });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
